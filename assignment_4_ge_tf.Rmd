@@ -1,0 +1,31 @@
+---
+title: "assignment_4_ge_tf"
+author: "Garrett Eyer and Tor Fibiger"
+date: "11/14/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r}
+
+library(tidyverse)
+library(janitor)
+
+lobster_data <- read_csv(("lobster_abundance_sbc_lter.csv"),
+                         na = "-99999") %>% 
+  clean_names() %>% 
+  uncount(count)
+
+lobster_count <- lobster_data %>% 
+  group_by(site) %>% 
+  summarize(
+    lobster_count = count(site)
+  )
+  
+
+```
+
