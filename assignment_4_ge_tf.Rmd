@@ -11,15 +11,21 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 ```{r}
-
 library(tidyverse)
 library(janitor)
+library(kableExtra)
+library(effsize)
 
 lobster_data <- read_csv(("lobster_abundance_sbc_lter.csv"),
                          na = "-99999") %>% 
   clean_names() %>% 
   uncount(count)
 
+```
+
+#Results A
+
+```{r}
 lobster_count <- lobster_data %>% 
   count(site,year)
 
@@ -28,70 +34,134 @@ lobster_size_2012 <- lobster_data %>%
 
 lobster_size_2018 <- lobster_data %>% 
   filter(year == 2018)
+
+
 ```
 
 
 #Results B
 
 ```{r}
-ggplot(data = lobster_size_2012, aes(x = size_mm)) +
-  geom_histogram() +
-  facet_wrap(~site)
+
+lobster_b <- lobster_data %>% 
+  select(year, site, size_mm) %>% 
+  filter(year %in% c(2012, 2018)) %>% 
+   mutate(year = as.character(year))
+
+lobster_b$site[lobster_b$site == "AQUE"] <- "Arroyo Quemada"
+
+lobster_b$site[lobster_b$site == "IVEE"] <-  "Isla Vista"
+
+lobster_b$site[lobster_b$site == "NAPL"] <- "Naples"
+
+lobster_b$site[lobster_b$site == "CARP"] <- "Carpinteria"
+
+lobster_b$site[lobster_b$site == "MOHK"] <- "Mohawk"
+
+ggplot(data = lobster_b, aes(x = size_mm, fill = year)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~site) +
+  theme_minimal() +
+  labs(title = "Size Distributions of Lobsters 2012 + 2018", x = "Size (mm)", y = "Density", 
+       caption = 
+"Fig. 2 - Size distributions of lobster samples caught at five reef sites in 2012 and 2018.\n The data show the MPA sites (Naples and Isla Vista) have larger lobsters in 2018 compared to 2012, while\nnon-MPA sites (Arroyo Quemada, Carpinteria, Mohawk) have not experienced a major shift in lobster sizes." )
   
-ggplot(data = lobster_size_2018, aes(x = size_mm)) +
-  geom_histogram() +
-  facet_wrap(~site)
+  
+  
 ```
 
-# compare means between MPA site and non MPA sites
+# Add mpa column to data sheet
 
 ```{r}
-lobster_mpa_2012 <- lobster_data %>%
-  filter(site == c("IVEE", "NAPL")) %>% 
-  filter(year == "2012", "2018")
-  
-lobster_not_mpa_2012 <- lobster_data %>% 
-  filter(site == c("CARP", "MOHK", "AQUE")) %>% 
-  filter(year == "2012")
-
-lobster_mpa_2018 <- lobster_data %>%
-  filter(site == c("IVEE", "NAPL")) %>% 
-  filter(year == "2018")
-  
-lobster_not_mpa_2018 <- lobster_data %>% 
-  filter(site == c("CARP", "MOHK", "AQUE")) %>% 
-  filter(year == "2018")
+mpa_lobster <- lobster_b %>% 
+  mutate(mpa = case_when(site %in% c("Naples", "Isla Vista") ~ "mpa",
+                       site %in% c("Carpinteria", "Arroyo Quemada", "Mohawk") ~ "not_mpa"))
 
 ```
+
+# Compare summary statistics between 2012 and 2018 for MPA and not MPA
+
+```{r}
+summary_stats <- mpa_lobster %>% 
+  group_by(mpa, year) %>% 
+  summarize(mean = mean(size_mm),
+  sd = sd(size_mm),
+  sample = n())
+  
+
+
+```
+
+#2012 difference between MPA and non-MPA sizes
+
+```{r}
+lobster_2012_mpa <- mpa_lobster %>% 
+  filter(year == "2012", mpa == "mpa") %>% 
+  pull(size_mm)
+
+lobster_2012_not_mpa <- mpa_lobster %>% 
+  filter(year == "2012", mpa == "not_mpa") %>% 
+  pull(size_mm)
+
+ `2012_ttest` <- t.test(lobster_2012_mpa, lobster_2012_not_mpa)
+ 
+ `2012_ttest`
+
+ cohen_2012 <- effsize::cohen.d(lobster_2012_mpa, lobster_2012_not_mpa, na.rm = TRUE)
+
+cohen_2012
+```
+
+#2018 difference between MPA and non-MPA sizes
 
 ```{r}
 
-lobster_summary_mpa_2012 <- lobster_mpa_2012 %>% 
-  summarize(
-    mean_size = mean(size_mm, na.rm = TRUE),
-    sd_size = sd(size_mm, na.rm = TRUE),
-    sample_n = n()
-  )
+lobster_2018_mpa <- mpa_lobster %>% 
+  filter(year == "2018", mpa == "mpa") %>% 
+  pull(size_mm)
 
-lobster_summary_not_mpa_2012 <- lobster_not_mpa_2012 %>% 
-  summarize(
-    mean_size = mean(size_mm, na.rm = TRUE),
-    sd_size = sd(size_mm, na.rm = TRUE),
-    sample_n = n()
-  )
+lobster_2018_not_mpa <- mpa_lobster %>% 
+  filter(year == "2018", mpa == "not_mpa") %>% 
+  pull(size_mm)
 
-lobster_summary_mpa_2018 <- lobster_mpa_2018 %>% 
-  summarize(
-    mean_size = mean(size_mm, na.rm = TRUE),
-    sd_size = sd(size_mm, na.rm = TRUE),
-    sample_n = n()
-  )
+ `2018_ttest` <- t.test(lobster_2018_mpa, lobster_2018_not_mpa)
+ 
+ `2018_ttest`
+ 
+ cohen_2018 <- effsize::cohen.d(lobster_2018_mpa, lobster_2018_not_mpa, na.rm = TRUE)
 
-lobster_summary_not_mpa_2018 <- lobster_not_mpa_2018 %>% 
-  summarize(
-    mean_size = mean(size_mm, na.rm = TRUE),
-    sd_size = sd(size_mm, na.rm = TRUE),
-    sample_n = n()
-  )
+cohen_2018
+
 ```
+
+#MPA sites between 2012 and 2018
+
+```{r}
+
+
+
+ `mpa_ttest` <- t.test(lobster_2012_mpa, lobster_2018_mpa)
+ 
+ `mpa_ttest`
+ 
+ cohen_mpa <- effsize::cohen.d(lobster_2012_mpa, lobster_2018_mpa, na.rm = TRUE)
+
+cohen_mpa
+
+
+```
+
+#non MPA sites between 2012 and 2018
+
+```{r}
+`non_mpa_ttest` <- t.test(lobster_2012_not_mpa, lobster_2018_not_mpa)
+
+`non_mpa_ttest`
+
+cohen_not_mpa <- effsize::cohen.d(lobster_2012_not_mpa, lobster_2018_not_mpa, na.rm = TRUE)
+
+cohen_not_mpa
+
+```
+
 
