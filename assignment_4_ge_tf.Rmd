@@ -146,7 +146,6 @@ ggplot(data = lobster_count, aes(x = year, y = total_count_by_site)) +
 
   Again, looking at the data, there is no indication that MPA status has any noticable effect on lobster abundance when comparing it to non-MPA sites. While MPA status may prove to be an effective tool for managing California Spiny Lobster populations, it could be that other factors are having an effect on abundance from year to year.  Factors such as levels of fishing pressure and ocean conditions could be playing an unseen role in lobster abundance differences between the different MPA and non-MPA sites.  
 
-#Results B
 
 ```{r}
 
@@ -166,7 +165,7 @@ ggplot(data = lobster_results_mpa, aes(x = size_mm, fill = year)) +
   facet_wrap(~site) +
   theme_minimal() +
   labs(title = "Lobster Size Distribution in MPA Sites 2012, 2018", x = "Size (mm)", y = "Relative Frequency", 
-   caption = "(Figure 5). Lobster Size Distribution in MPA protected sites in 2012 and 2018. The red curve shows \nlobster samples collected in 2012 while the blue curve shows lobster samples collected in 2018.\n Data: SBC LTER.") + scale_x_continuous(limits = c(40, 160),
+   caption = "(Figure 4). Lobster Size Distribution in MPA protected sites in 2012 and 2018. The red curve shows \nlobster samples collected in 2012 while the blue curve shows lobster samples collected in 2018.\n Data: SBC LTER.") + scale_x_continuous(limits = c(40, 160),
                      breaks = seq(40, 160, by = 40)) +
 scale_y_continuous(limits = c(0, 0.06),
                      breaks = seq(0, 0.06, by = 0.01))
@@ -227,33 +226,69 @@ mpa_lobster <- lobster_b %>%
 ```
 
 
+```{r}
+
+mpa_2012 <- mpa_lobster %>% 
+  filter(year == 2012, mpa == "mpa") 
+
+nonmpa_2012 <- mpa_lobster %>% 
+  filter(year == 2012, mpa == "not_mpa") 
+
+mpa_2018 <- mpa_lobster %>% 
+  filter(year == 2018, mpa == "mpa") 
+
+nonmpa_2018 <- mpa_lobster %>% 
+  filter(year == 2018, mpa == "not_mpa")  
+
+# Calculate Means
+
+mean_mpa_2012 <- mean(mpa_2012$size_mm, na.rm = TRUE) 
+mean_nonmpa_2012 <- mean(nonmpa_2012$size_mm, na.rm = TRUE)
+mean_mpa_2018 <- mean(mpa_2018$size_mm, na.rm = TRUE)
+mean_nonmpa_2018 <- mean(nonmpa_2018$size_mm, na.rm = TRUE)
+
+# Calculate Standard Deviations
+
+sd_mpa_2012 <- sd(mpa_2012$size_mm, na.rm = TRUE) 
+sd_nonmpa_2012 <- sd(nonmpa_2012$size_mm, na.rm = TRUE)
+sd_mpa_2018 <- sd(mpa_2018$size_mm, na.rm = TRUE)
+sd_nonmpa_2018 <- sd(nonmpa_2018$size_mm, na.rm = TRUE)
+
+# Calculate Sample Sizes
+
+n_mpa_2012 <- sum(!is.na(mpa_2012$size_mm))
+n_nonmpa_2012 <- sum(!is.na(nonmpa_2012$size_mm))
+n_mpa_2018 <- sum(!is.na(mpa_2018$size_mm))
+n_nonmpa_2018 <- sum(!is.na(nonmpa_2018$size_mm))
+```
+
+
 
 ```{r}
-# Compare summary statistics between 2012 and 2018 for MPA and not MPA
+lobster_summary_prep <- mpa_lobster %>%
+ filter(year %in% c(2012, 2018)) %>%
+ group_by(mpa, year) %>%
+ summarize(mean = mean(size_mm, na.rm = TRUE),
+           sd = sd(size_mm, na.rm = TRUE),
+           sample_size = n()) 
 
 
-summary_stats <- mpa_lobster %>% 
-  group_by(mpa, year) %>% 
-  summarize(mean = mean(size_mm, na.rm = TRUE),
-  sd = sd(size_mm, na.rm = TRUE),
-  sample = n())
-  
-
-lobster_summary_table <- summary_stats %>% 
-  kable(col.names = c("Year", 
-                     "MPA or non-MPA Sites", 
-                     "Mean lobster size (mm)",
-                     "Standard Deviation (mm)",
-                     "Sample Size (# of lobsters)"),
-        caption = "Figure 5. Lobster size sample statistics grouped in MPA and non-MPA sites in 2012 and 2018."
-        ) %>% 
-  kable_styling(bootstrap_options = c("striped", "bordered"),
-                full_width = F,
-                position = "center") 
+lobster_summary_prep %>%
+ kable(col.names = c("MPA Status",
+                     "Year",
+                     "Mean Lobster Size (mm)",
+                     "Standard Deviation",
+                     "Sample Size"),
+       caption = "Table 1. Mean lobster size, standard deviation and sample size for MPA and non-MPA sites in 2012 and 2018.") %>%
+ kable_styling(bootstrap_options = "striped",
+               full_width = F,
+               position = "left"
+               ) %>%
+ add_header_above(c("LOBSTER SIZE METRICS" = 5))  
 
 ```
 
-#2012 difference between MPA and non-MPA sizes
+#### 2012 difference between MPA and non-MPA sizes
 
 ```{r}
 lobster_2012_mpa <- mpa_lobster %>% 
@@ -264,21 +299,15 @@ lobster_2012_not_mpa <- mpa_lobster %>%
   filter(year == "2012", mpa == "not_mpa") %>% 
   pull(size_mm)
 
- `2012_ttest` <- t.test(lobster_2012_mpa, lobster_2012_not_mpa)
- 
- `2012_ttest`
+ttest_2012 <- t.test(lobster_2012_mpa, lobster_2012_not_mpa)
 
- cohen_2012 <- effsize::cohen.d(lobster_2012_mpa, lobster_2012_not_mpa, na.rm = TRUE)
+cohen_2012 <- effsize::cohen.d(lobster_2012_mpa, lobster_2012_not_mpa, na.rm = TRUE)
 
-cohen_2012
 ```
-
-Upon comparing the mean sizes 
-
+Mean lobster sizes in MPA sites sampled in 2012 (`r round(mean_mpa_2012, 2)` $\pm$ `r round(sd_mpa_2012, 2)`, n = `r n_mpa_2012`) showed significant differences from mean lobster sizes in non-MPA sites in 2012 (`r round(mean_nonmpa_2012, 2)` $\pm$ `r round(sd_nonmpa_2012, 2)`, n = `r n_nonmpa_2012`) by a two-sided t-test (t(`r round(ttest_2012$parameter, 2)`) = `r round(ttest_2012$statistic, 2)`, *p* = `r round(ttest_2012$p.value, 3)`). With an effect size of -0.51 (Cohen's *d* = `r round(cohen_2012$estimate, 2)`), the magnitude of the increase in mean lobster size between MPA and non-MPA sites in 2012 is significant.
 
 
-
-#2018 difference between MPA and non-MPA sizes
+#### 2018 difference between MPA and non-MPA sizes
 
 ```{r}
 
@@ -290,44 +319,43 @@ lobster_2018_not_mpa <- mpa_lobster %>%
   filter(year == "2018", mpa == "not_mpa") %>% 
   pull(size_mm)
 
- `2018_ttest` <- t.test(lobster_2018_mpa, lobster_2018_not_mpa)
+ttest_2018 <- t.test(lobster_2018_mpa, lobster_2018_not_mpa)
  
- `2018_ttest`
- 
- cohen_2018 <- effsize::cohen.d(lobster_2018_mpa, lobster_2018_not_mpa, na.rm = TRUE)
-
-cohen_2018
+cohen_2018 <- effsize::cohen.d(lobster_2018_mpa, lobster_2018_not_mpa, na.rm = TRUE)
 
 ```
+Mean lobster sizes in MPA sites sampled in 2018 (`r round(mean_mpa_2018, 2)` $\pm$ `r round(sd_mpa_2018, 2)`, n = `r n_mpa_2018`) showed significant differences from mean lobster sizes in non-MPA sites in 2018 (`r round(mean_nonmpa_2018, 2)` $\pm$ `r round(sd_nonmpa_2018, 2)`, n = `r n_nonmpa_2012`) by a two-sided t-test (t(`r round(ttest_2018$parameter, 2)`) = `r round(ttest_2018$statistic, 2)`, *p* < 0.001). With a small effect size of 0.32 (Cohen's *d* = `r round(cohen_2018$estimate, 2)`). The magnitude of the increase in mean lobster size is insignificant due to the small difference between MPA and non-MPA sites in 2018.
 
-#MPA sites between 2012 and 2018
+
+#### MPA sites between 2012 and 2018
 
 ```{r}
 
-
-
- `mpa_ttest` <- t.test(lobster_2012_mpa, lobster_2018_mpa)
+mpa_ttest <- t.test(lobster_2012_mpa, lobster_2018_mpa)
  
- `mpa_ttest`
- 
- cohen_mpa <- effsize::cohen.d(lobster_2012_mpa, lobster_2018_mpa, na.rm = TRUE)
-
-cohen_mpa
-
+cohen_mpa <- effsize::cohen.d(lobster_2012_mpa, lobster_2018_mpa, na.rm = TRUE)
 
 ```
+Mean lobster size differed significantly between MPA sites in 2012 and 2018 (t(`r round(mpa_ttest$parameter, 2)`) = `r round(mpa_ttest$statistic, 2)`, *p* < 0.001). The magnitude of the difference in lobster size in 2018 compared to 2012 was large (Cohen's *d* = `r round(cohen_mpa$estimate, 2)`).  
 
-#non MPA sites between 2012 and 2018
+
+#### Non MPA sites between 2012 and 2018
 
 ```{r}
-`non_mpa_ttest` <- t.test(lobster_2012_not_mpa, lobster_2018_not_mpa)
-
-`non_mpa_ttest`
+non_mpa_ttest <- t.test(lobster_2012_not_mpa, lobster_2018_not_mpa)
 
 cohen_not_mpa <- effsize::cohen.d(lobster_2012_not_mpa, lobster_2018_not_mpa, na.rm = TRUE)
 
-cohen_not_mpa
-
 ```
+
+There is not enough evidence to conclude that mean lobster size was significantly different within non-MPA sites in 2012 vs. 2018 (t(`r round(non_mpa_ttest$parameter, 2)`) = `r round(non_mpa_ttest$statistic, 2)`, *p* = `r round(non_mpa_ttest$p.value, 3)`) In addition, the effect size was negligible (Cohen's *d* = `r round(cohen_not_mpa$estimate, 2)`). 
+
+
+### Summary
+
+- The main takeaway is that the mean size in lobsters taken from MPA protected sites increased roughly 10 millimeters from 2012 to 2018 (67.70 mm to 77.77 mm).
+
+- Mean lobster size stayed consistent in non-MPA protected sites from 2012 through 2018. Comparing non-MPA protected sites from 2012 to 2018, mean lobster size did not change significantly (p-value = 0.732) and had a negligible effect size (Cohen's d = 0.04)
+
 
 
