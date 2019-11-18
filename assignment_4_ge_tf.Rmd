@@ -168,8 +168,8 @@ ggplot(data = lobster_results_mpa, aes(x = size_mm, fill = year)) +
   labs(title = "Lobster Size Distribution in MPA Sites 2012, 2018", x = "Size (mm)", y = "Relative Frequency", 
    caption = "(Figure 5). Lobster Size Distribution in MPA protected sites in 2012 and 2018. The red curve shows \nlobster samples collected in 2012 while the blue curve shows lobster samples collected in 2018.\n Data: SBC LTER.") + scale_x_continuous(limits = c(40, 160),
                      breaks = seq(40, 160, by = 40)) +
-scale_y_continuous(limits = c(0, 0.05),
-                     breaks = seq(0, 0.05, by = 0.01))
+scale_y_continuous(limits = c(0, 0.06),
+                     breaks = seq(0, 0.06, by = 0.01))
 
 
 lobster_results_not_mpa <- lobster_data %>% 
@@ -192,8 +192,8 @@ ggplot(data = lobster_results_not_mpa, aes(x = size_mm, fill = year)) +
          caption = "(Figure 5). Lobster Size Distribution in non-MPA protected sites in 2012 and 2018. The red curve shows \nlobster samples collected in 2012 while the blue curve shows lobster samples collected in 2018.\n Data: SBC LTER.") +
    scale_x_continuous(limits = c(40, 160),
                      breaks = seq(40, 160, by = 40)) +
-  scale_y_continuous(limits = c(0, 0.05),
-                     breaks = seq(0, 0.05, by = 0.01))
+  scale_y_continuous(limits = c(0, 0.06),
+                     breaks = seq(0, 0.06, by = 0.01))
 
   
   
@@ -209,15 +209,23 @@ ggplot(data = lobster_results_not_mpa, aes(x = size_mm, fill = year)) +
 # Add mpa column to data sheet
 
 lobster_b <- lobster_data %>% 
-  select(year, site, size_mm) %>% 
+  select(year, site, size_mm) %>%
   filter(year %in% c(2012, 2018)) %>% 
-   mutate(year = as.character(year))
+   mutate(year = as.character(year)) %>% 
+mutate(site_name = case_when(
+    site == "MOHK" ~ "Mohawk",
+    site == "CARP" ~ "Carpinteria",
+    site == "AQUE" ~ "Arroyo Quemada",
+    site == "NAPL" ~ "Naples",
+    site == "IVEE" ~ "Isla Vista"
+  ))
 
 mpa_lobster <- lobster_b %>% 
-  mutate(mpa = case_when(site %in% c("Naples", "Isla Vista") ~ "mpa",
-                       site %in% c("Carpinteria", "Arroyo Quemada", "Mohawk") ~ "not_mpa"))
+  mutate(mpa = case_when(site_name %in% c("Naples", "Isla Vista") ~ "mpa",
+                       site_name %in% c("Carpinteria", "Arroyo Quemada", "Mohawk") ~ "not_mpa"))
 
 ```
+
 
 
 ```{r}
@@ -226,11 +234,22 @@ mpa_lobster <- lobster_b %>%
 
 summary_stats <- mpa_lobster %>% 
   group_by(mpa, year) %>% 
-  summarize(mean = mean(size_mm),
-  sd = sd(size_mm),
+  summarize(mean = mean(size_mm, na.rm = TRUE),
+  sd = sd(size_mm, na.rm = TRUE),
   sample = n())
   
 
+lobster_summary_table <- summary_stats %>% 
+  kable(col.names = c("Year", 
+                     "MPA or non-MPA Sites", 
+                     "Mean lobster size (mm)",
+                     "Standard Deviation (mm)",
+                     "Sample Size (# of lobsters)"),
+        caption = "Figure 5. Lobster size sample statistics grouped in MPA and non-MPA sites in 2012 and 2018."
+        ) %>% 
+  kable_styling(bootstrap_options = c("striped", "bordered"),
+                full_width = F,
+                position = "center") 
 
 ```
 
@@ -253,6 +272,11 @@ lobster_2012_not_mpa <- mpa_lobster %>%
 
 cohen_2012
 ```
+
+Upon comparing the mean sizes 
+
+
+
 
 #2018 difference between MPA and non-MPA sizes
 
